@@ -12,6 +12,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  base: '/physiotherapy/',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
