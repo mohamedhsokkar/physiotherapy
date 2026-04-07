@@ -48,12 +48,18 @@ const api = {
     });
   },
 
-  getPatients(token, search = "") {
+  getPatients(token, search = "", filters = {}) {
     const params = new URLSearchParams();
 
     if (search.trim()) {
       params.set("search", search.trim());
     }
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && `${value}`.trim() !== "") {
+        params.set(key, `${value}`.trim());
+      }
+    });
 
     const query = params.toString();
 
@@ -97,6 +103,70 @@ const api = {
   getDashboardRecentActivity(token) {
     return request("/dashboard/recent-activity", {
       token
+    });
+  },
+
+  getUsers(token, filters = {}) {
+    const params = new URLSearchParams();
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && `${value}`.trim() !== "") {
+        params.set(key, `${value}`.trim());
+      }
+    });
+
+    const query = params.toString();
+
+    return request(`/auth/users${query ? `?${query}` : ""}`, {
+      token
+    });
+  },
+
+  getVisits(token, filters = {}) {
+    const params = new URLSearchParams();
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && `${value}`.trim() !== "") {
+        params.set(key, `${value}`.trim());
+      }
+    });
+
+    const query = params.toString();
+
+    return request(`/visits${query ? `?${query}` : ""}`, {
+      token
+    });
+  },
+
+  createVisit(token, input) {
+    return request("/visits", {
+      method: "POST",
+      token,
+      body: JSON.stringify(input)
+    });
+  },
+
+  getExpenses(token, filters = {}) {
+    const params = new URLSearchParams();
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && `${value}`.trim() !== "") {
+        params.set(key, `${value}`.trim());
+      }
+    });
+
+    const query = params.toString();
+
+    return request(`/expenses${query ? `?${query}` : ""}`, {
+      token
+    });
+  },
+
+  createExpense(token, input) {
+    return request("/expenses", {
+      method: "POST",
+      token,
+      body: JSON.stringify(input)
     });
   }
 };

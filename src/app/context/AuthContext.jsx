@@ -2,6 +2,16 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { api } from "../lib/api";
 const TOKEN_STORAGE_KEY = "clinic_auth_token";
 const AuthContext = createContext(void 0);
+function normalizeUser(user) {
+  if (!user) {
+    return null;
+  }
+
+  return {
+    ...user,
+    id: user.id || user._id
+  };
+}
 function AuthProvider({
   children
 }) {
@@ -16,7 +26,7 @@ function AuthProvider({
     }
     setToken(savedToken);
     api.me(savedToken).then(response => {
-      setUser(response.data);
+      setUser(normalizeUser(response.data));
     }).catch(() => {
       window.localStorage.removeItem(TOKEN_STORAGE_KEY);
       setToken(null);
@@ -30,7 +40,7 @@ function AuthProvider({
     const nextToken = response.data.token;
     window.localStorage.setItem(TOKEN_STORAGE_KEY, nextToken);
     setToken(nextToken);
-    setUser(response.data.user);
+    setUser(normalizeUser(response.data.user));
   };
   const logout = () => {
     window.localStorage.removeItem(TOKEN_STORAGE_KEY);
