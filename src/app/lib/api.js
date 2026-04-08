@@ -122,14 +122,6 @@ const api = {
     });
   },
 
-  createUser(token, input) {
-    return request("/auth/register", {
-      method: "POST",
-      token,
-      body: JSON.stringify(input)
-    });
-  },
-
   getVisits(token, filters = {}) {
     const params = new URLSearchParams();
 

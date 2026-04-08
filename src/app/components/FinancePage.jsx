@@ -77,7 +77,7 @@ function FinancePage({
     };
   }, [filters, refreshKey, token]);
 
-  const canManageExpenses = user?.role === "admin" || user?.role === "receptionist";
+  const canManageExpenses = user?.role === "admin";
 
   return (
     <div className="space-y-6">

@@ -1,9 +1,11 @@
 import { LayoutDashboard, Users, Calendar, DollarSign, FileText, Settings, Activity, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
+import { getAllowedPages } from "../lib/permissions";
 function Sidebar({
   currentPage,
-  onNavigate
+  onNavigate,
+  user
 }) {
   const {
     language,
@@ -36,7 +38,7 @@ function Sidebar({
     id: "admin",
     label: t("nav.admin"),
     icon: Settings
-  }];
+  }].filter(item => getAllowedPages(user?.role).includes(item.id));
   const handleNavigate = id => {
     onNavigate(id);
     setIsMobileOpen(false);

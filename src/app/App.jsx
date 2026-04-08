@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Sidebar } from "./components/Sidebar";
@@ -14,8 +14,8 @@ import { AddVisitModal } from "./components/AddVisitModal";
 import { AddPatientModal } from "./components/AddPatientModal";
 import { AddNoteModal } from "./components/AddNoteModal";
 import { AddExpenseModal } from "./components/AddExpenseModal";
-import { AddUserModal } from "./components/AddUserModal";
 import { LoginPage } from "./components/LoginPage";
+import { canAccessPage, getDefaultPage } from "./lib/permissions";
 function AppContent() {
   const {
     isLoading,
@@ -28,7 +28,6 @@ function AppContent() {
   const [modalData, setModalData] = useState(null);
   const [visitsRefreshKey, setVisitsRefreshKey] = useState(0);
   const [expensesRefreshKey, setExpensesRefreshKey] = useState(0);
-  const [usersRefreshKey, setUsersRefreshKey] = useState(0);
   const handleNavigate = (page, data) => {
     setCurrentPage(page);
     setPageData(data || null);
@@ -54,9 +53,14 @@ function AppContent() {
   const handleExpenseCreated = () => {
     setExpensesRefreshKey(current => current + 1);
   };
-  const handleUserCreated = () => {
-    setUsersRefreshKey(current => current + 1);
-  };
+  useEffect(() => {
+    if (!user || canAccessPage(user.role, currentPage)) {
+      return;
+    }
+
+    setCurrentPage(getDefaultPage(user.role));
+    setPageData(null);
+  }, [currentPage, user]);
   const getPageTitle = () => {
     switch (currentPage) {
       case "dashboard":
@@ -84,7 +88,7 @@ function AppContent() {
     return <LoginPage />;
   }
   const patientProfileData = pageData;
-  return <div className="min-h-screen bg-background"><Sidebar currentPage={currentPage} onNavigate={handleNavigate} /><TopBar pageTitle={getPageTitle()} /><main className="mt-16 p-4 md:p-6 lg:ml-64">{currentPage === "dashboard" && <Dashboard token={token} onNavigate={handleNavigate} />}{currentPage === "patients" && <PatientsPage token={token} onNavigate={handleNavigate} onOpenModal={handleOpenModal} />}{currentPage === "visits" && <VisitsPage token={token} user={user} onOpenModal={handleOpenModal} refreshKey={visitsRefreshKey} />}{currentPage === "patientProfile" && patientProfileData?.patient ? <PatientProfile token={token} patient={patientProfileData.patient} onBack={() => handleNavigate("patients")} onOpenModal={handleOpenModal} refreshKey={visitsRefreshKey} /> : null}{currentPage === "finance" && <FinancePage token={token} user={user} onOpenModal={handleOpenModal} refreshKey={expensesRefreshKey} />}{currentPage === "reports" && <ReportsPage />}{currentPage === "admin" && <AdminPage token={token} user={user} onOpenModal={handleOpenModal} refreshKey={usersRefreshKey} />}</main>{currentModal === "addVisit" ? <AddVisitModal token={token} onClose={handleCloseModal} patient={modalData?.patient} initialDate={modalData?.initialDate} onCreated={handleVisitCreated} /> : null}{currentModal === "addPatient" ? <AddPatientModal token={token} onClose={handleCloseModal} onCreated={handlePatientCreated} /> : null}{currentModal === "addNote" ? <AddNoteModal onClose={handleCloseModal} patient={modalData?.patient} /> : null}{currentModal === "addExpense" ? <AddExpenseModal token={token} onClose={handleCloseModal} onCreated={handleExpenseCreated} /> : null}{currentModal === "addUser" ? <AddUserModal token={token} onClose={handleCloseModal} onCreated={handleUserCreated} /> : null}</div>;
+  return <div className="min-h-screen bg-background"><Sidebar currentPage={currentPage} onNavigate={handleNavigate} user={user} /><TopBar pageTitle={getPageTitle()} /><main className="mt-16 p-4 md:p-6 lg:ml-64">{currentPage === "dashboard" && canAccessPage(user.role, "dashboard") ? <Dashboard token={token} onNavigate={handleNavigate} /> : null}{currentPage === "patients" && canAccessPage(user.role, "patients") ? <PatientsPage token={token} onNavigate={handleNavigate} onOpenModal={handleOpenModal} /> : null}{currentPage === "visits" && canAccessPage(user.role, "visits") ? <VisitsPage token={token} user={user} onOpenModal={handleOpenModal} refreshKey={visitsRefreshKey} /> : null}{currentPage === "patientProfile" && canAccessPage(user.role, "patientProfile") && patientProfileData?.patient ? <PatientProfile token={token} patient={patientProfileData.patient} onBack={() => handleNavigate("patients")} onOpenModal={handleOpenModal} refreshKey={visitsRefreshKey} /> : null}{currentPage === "finance" && canAccessPage(user.role, "finance") ? <FinancePage token={token} user={user} onOpenModal={handleOpenModal} refreshKey={expensesRefreshKey} /> : null}{currentPage === "reports" && canAccessPage(user.role, "reports") ? <ReportsPage /> : null}{currentPage === "admin" && canAccessPage(user.role, "admin") ? <AdminPage token={token} /> : null}</main>{currentModal === "addVisit" ? <AddVisitModal token={token} onClose={handleCloseModal} patient={modalData?.patient} initialDate={modalData?.initialDate} onCreated={handleVisitCreated} /> : null}{currentModal === "addPatient" ? <AddPatientModal token={token} onClose={handleCloseModal} onCreated={handlePatientCreated} /> : null}{currentModal === "addNote" ? <AddNoteModal onClose={handleCloseModal} patient={modalData?.patient} /> : null}{currentModal === "addExpense" ? <AddExpenseModal token={token} onClose={handleCloseModal} onCreated={handleExpenseCreated} /> : null}</div>;
 }
 function App() {
   return <LanguageProvider><AuthProvider><AppContent /></AuthProvider></LanguageProvider>;
