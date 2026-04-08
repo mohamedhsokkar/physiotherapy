@@ -1,26 +1,51 @@
+import { useState } from "react";
 import { X } from "lucide-react";
+import { api } from "../lib/api";
+
 function AddUserModal({
-  onClose
+  token,
+  onClose,
+  onCreated
 }) {
-  const handleSubmit = e => {
-    e.preventDefault();
-    onClose();
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "receptionist",
+    isActive: true
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleChange = event => {
+    const {
+      name,
+      value
+    } = event.target;
+    setFormData(current => ({
+      ...current,
+      [name]: value
+    }));
   };
-  return <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"><div className="flex items-center justify-between p-6 border-b border-border"><h2 className="text-foreground">Add New User</h2><button onClick={onClose} className="p-2 hover:bg-accent rounded-lg transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button></div><form onSubmit={handleSubmit} className="p-6 space-y-6"><div className="grid grid-cols-2 gap-4"><div><label className="block mb-2 text-foreground">First Name</label><input type="text" placeholder="John" className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring" /></div><div><label className="block mb-2 text-foreground">Last Name</label><input type="text" placeholder="Doe" className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring" /></div></div><div><label className="block mb-2 text-foreground">Email</label><input type="email" placeholder="john.doe@clinic.com" className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring" /></div><div className="grid grid-cols-2 gap-4"><div><label className="block mb-2 text-foreground">Phone</label><input type="tel" placeholder="(555) 123-4567" className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring" /></div><div><label className="block mb-2 text-foreground">Role</label><select className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"><option>Doctor</option><option>Receptionist</option><option>Admin</option></select></div></div><div><label className="block mb-2 text-foreground">Status</label><select className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"><option>Active</option><option>Inactive</option></select></div><div><label className="block mb-2 text-foreground">Initial Password</label><input type="password" placeholder="Enter temporary password" className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring" /><p className="text-xs text-muted-foreground mt-1">User will be required to change password on first login</p></div><div><h4 className="text-foreground mb-3">Permissions</h4><div className="space-y-2">{[{
-              id: "patients",
-              label: "Manage Patients"
-            }, {
-              id: "visits",
-              label: "Manage Visits"
-            }, {
-              id: "finance",
-              label: "View Finance"
-            }, {
-              id: "reports",
-              label: "Generate Reports"
-            }, {
-              id: "admin",
-              label: "Admin Access"
-            }].map(permission => <label className="flex items-center gap-2" key={permission.id}><input type="checkbox" className="w-4 h-4 rounded border-border" /><span className="text-sm text-foreground">{permission.label}</span></label>)}</div></div><div className="flex items-center gap-3 pt-4 border-t border-border"><button type="submit" className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">Add User</button><button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/80 transition-colors">Cancel</button></div></form></div></div>;
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError("");
+    try {
+      await api.createUser(token, formData);
+      onCreated?.();
+      onClose();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Failed to create user");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg bg-white shadow-xl"><div className="flex items-center justify-between border-b border-border p-6"><div><h2 className="text-foreground">Add New User</h2><p className="mt-1 text-sm text-muted-foreground">Creates a staff account through the existing <code>/api/auth/register</code> endpoint.</p></div><button onClick={onClose} className="rounded-lg p-2 transition-colors hover:bg-accent"><X className="h-5 w-5 text-muted-foreground" /></button></div><form onSubmit={handleSubmit} className="space-y-6 p-6"><div><label className="mb-2 block text-foreground">Full name</label><input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="John Doe" required className="w-full rounded-lg border border-border bg-input-background px-4 py-2 focus:outline-none focus:ring-2 focus:ring-ring" /></div><div><label className="mb-2 block text-foreground">Email</label><input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="john.doe@clinic.com" required className="w-full rounded-lg border border-border bg-input-background px-4 py-2 focus:outline-none focus:ring-2 focus:ring-ring" /></div><div className="grid grid-cols-1 gap-4 md:grid-cols-2"><div><label className="mb-2 block text-foreground">Role</label><select name="role" value={formData.role} onChange={handleChange} className="w-full rounded-lg border border-border bg-input-background px-4 py-2 focus:outline-none focus:ring-2 focus:ring-ring"><option value="admin">Admin</option><option value="doctor">Doctor</option><option value="receptionist">Receptionist</option></select></div><div><label className="mb-2 block text-foreground">Status</label><select value={formData.isActive ? "active" : "inactive"} onChange={event => setFormData(current => ({
+                ...current,
+                isActive: event.target.value === "active"
+              }))} className="w-full rounded-lg border border-border bg-input-background px-4 py-2 focus:outline-none focus:ring-2 focus:ring-ring"><option value="active">Active</option><option value="inactive">Inactive</option></select></div></div><div><label className="mb-2 block text-foreground">Temporary password</label><input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="At least 6 characters" minLength={6} required className="w-full rounded-lg border border-border bg-input-background px-4 py-2 focus:outline-none focus:ring-2 focus:ring-ring" /><p className="mt-1 text-xs text-muted-foreground">The current backend stores the password directly and does not support first-login reset yet.</p></div>{error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}<div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row"><button type="submit" disabled={isSubmitting} className="flex-1 rounded-lg bg-primary px-4 py-2 text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? "Creating..." : "Add User"}</button><button type="button" onClick={onClose} disabled={isSubmitting} className="flex-1 rounded-lg bg-accent px-4 py-2 text-accent-foreground transition-colors hover:bg-accent/80 disabled:cursor-not-allowed disabled:opacity-60">Cancel</button></div></form></div></div>;
 }
 export { AddUserModal };

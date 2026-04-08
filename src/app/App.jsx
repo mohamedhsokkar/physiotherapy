@@ -28,6 +28,7 @@ function AppContent() {
   const [modalData, setModalData] = useState(null);
   const [visitsRefreshKey, setVisitsRefreshKey] = useState(0);
   const [expensesRefreshKey, setExpensesRefreshKey] = useState(0);
+  const [usersRefreshKey, setUsersRefreshKey] = useState(0);
   const handleNavigate = (page, data) => {
     setCurrentPage(page);
     setPageData(data || null);
@@ -52,6 +53,9 @@ function AppContent() {
   };
   const handleExpenseCreated = () => {
     setExpensesRefreshKey(current => current + 1);
+  };
+  const handleUserCreated = () => {
+    setUsersRefreshKey(current => current + 1);
   };
   const getPageTitle = () => {
     switch (currentPage) {
@@ -80,7 +84,7 @@ function AppContent() {
     return <LoginPage />;
   }
   const patientProfileData = pageData;
-  return <div className="min-h-screen bg-background"><Sidebar currentPage={currentPage} onNavigate={handleNavigate} /><TopBar pageTitle={getPageTitle()} /><main className="mt-16 p-4 md:p-6 lg:ml-64">{currentPage === "dashboard" && <Dashboard token={token} onNavigate={handleNavigate} />}{currentPage === "patients" && <PatientsPage token={token} onNavigate={handleNavigate} onOpenModal={handleOpenModal} />}{currentPage === "visits" && <VisitsPage token={token} user={user} onOpenModal={handleOpenModal} refreshKey={visitsRefreshKey} />}{currentPage === "patientProfile" && patientProfileData?.patient ? <PatientProfile token={token} patient={patientProfileData.patient} onBack={() => handleNavigate("patients")} onOpenModal={handleOpenModal} refreshKey={visitsRefreshKey} /> : null}{currentPage === "finance" && <FinancePage token={token} user={user} onOpenModal={handleOpenModal} refreshKey={expensesRefreshKey} />}{currentPage === "reports" && <ReportsPage />}{currentPage === "admin" && <AdminPage onOpenModal={handleOpenModal} />}</main>{currentModal === "addVisit" ? <AddVisitModal token={token} onClose={handleCloseModal} patient={modalData?.patient} onCreated={handleVisitCreated} /> : null}{currentModal === "addPatient" ? <AddPatientModal token={token} onClose={handleCloseModal} onCreated={handlePatientCreated} /> : null}{currentModal === "addNote" ? <AddNoteModal onClose={handleCloseModal} patient={modalData?.patient} /> : null}{currentModal === "addExpense" ? <AddExpenseModal token={token} onClose={handleCloseModal} onCreated={handleExpenseCreated} /> : null}{currentModal === "addUser" ? <AddUserModal onClose={handleCloseModal} /> : null}</div>;
+  return <div className="min-h-screen bg-background"><Sidebar currentPage={currentPage} onNavigate={handleNavigate} /><TopBar pageTitle={getPageTitle()} /><main className="mt-16 p-4 md:p-6 lg:ml-64">{currentPage === "dashboard" && <Dashboard token={token} onNavigate={handleNavigate} />}{currentPage === "patients" && <PatientsPage token={token} onNavigate={handleNavigate} onOpenModal={handleOpenModal} />}{currentPage === "visits" && <VisitsPage token={token} user={user} onOpenModal={handleOpenModal} refreshKey={visitsRefreshKey} />}{currentPage === "patientProfile" && patientProfileData?.patient ? <PatientProfile token={token} patient={patientProfileData.patient} onBack={() => handleNavigate("patients")} onOpenModal={handleOpenModal} refreshKey={visitsRefreshKey} /> : null}{currentPage === "finance" && <FinancePage token={token} user={user} onOpenModal={handleOpenModal} refreshKey={expensesRefreshKey} />}{currentPage === "reports" && <ReportsPage />}{currentPage === "admin" && <AdminPage token={token} user={user} onOpenModal={handleOpenModal} refreshKey={usersRefreshKey} />}</main>{currentModal === "addVisit" ? <AddVisitModal token={token} onClose={handleCloseModal} patient={modalData?.patient} initialDate={modalData?.initialDate} onCreated={handleVisitCreated} /> : null}{currentModal === "addPatient" ? <AddPatientModal token={token} onClose={handleCloseModal} onCreated={handlePatientCreated} /> : null}{currentModal === "addNote" ? <AddNoteModal onClose={handleCloseModal} patient={modalData?.patient} /> : null}{currentModal === "addExpense" ? <AddExpenseModal token={token} onClose={handleCloseModal} onCreated={handleExpenseCreated} /> : null}{currentModal === "addUser" ? <AddUserModal token={token} onClose={handleCloseModal} onCreated={handleUserCreated} /> : null}</div>;
 }
 function App() {
   return <LanguageProvider><AuthProvider><AppContent /></AuthProvider></LanguageProvider>;

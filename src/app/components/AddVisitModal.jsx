@@ -5,15 +5,32 @@ import { api } from "../lib/api";
 function AddVisitModal({
   token,
   patient,
+  initialDate,
   onClose,
   onCreated
 }) {
+  const getInitialVisitDate = () => {
+    if (!initialDate) {
+      return new Date().toISOString().slice(0, 16);
+    }
+
+    const parsedDate = new Date(initialDate);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return new Date().toISOString().slice(0, 16);
+    }
+
+    return new Date(parsedDate.getTime() - parsedDate.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+  };
+
   const [patients, setPatients] = useState(patient ? [patient] : []);
   const [doctors, setDoctors] = useState([]);
   const [form, setForm] = useState({
     patient: patient?._id || "",
     doctor: "",
-    visitDate: new Date().toISOString().slice(0, 16),
+    visitDate: getInitialVisitDate(),
     visitType: "session",
     status: "completed",
     chiefComplaint: "",
@@ -25,6 +42,14 @@ function AddVisitModal({
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setForm((current) => ({
+      ...current,
+      patient: patient?._id || "",
+      visitDate: getInitialVisitDate()
+    }));
+  }, [initialDate, patient]);
 
   useEffect(() => {
     let isCancelled = false;

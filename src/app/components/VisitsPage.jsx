@@ -1,4 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import timeGridPlugin from "@fullcalendar/timegrid";
 import { Calendar, Plus } from "lucide-react";
 import { api } from "../lib/api";
 
@@ -16,6 +20,29 @@ function formatVisitType(value) {
   return value.replace(/_/g, " ");
 }
 
+function getVisitStatusStyles(status) {
+  switch (status) {
+    case "completed":
+      return {
+        backgroundColor: "#dcfce7",
+        borderColor: "#16a34a",
+        textColor: "#166534"
+      };
+    case "cancelled":
+      return {
+        backgroundColor: "#fee2e2",
+        borderColor: "#dc2626",
+        textColor: "#991b1b"
+      };
+    default:
+      return {
+        backgroundColor: "#dbeafe",
+        borderColor: "#2563eb",
+        textColor: "#1d4ed8"
+      };
+  }
+}
+
 function VisitsPage({
   token,
   user,
@@ -29,6 +56,7 @@ function VisitsPage({
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const canCreateVisit = user?.role !== "doctor";
 
   useEffect(() => {
     let isCancelled = false;
@@ -39,7 +67,7 @@ function VisitsPage({
 
       try {
         const response = await api.getVisits(token, {
-          limit: 50,
+          limit: 500,
           ...(user?.role === "doctor" ? { doctor: user.id } : {}),
           ...filters
         });
@@ -67,16 +95,43 @@ function VisitsPage({
     };
   }, [filters, refreshKey, token, user?.id, user?.role]);
 
+  const calendarEvents = useMemo(
+    () =>
+      visits.map((visit) => ({
+        id: visit._id,
+        title: visit.patient?.fullName || "Unknown patient",
+        start: visit.visitDate,
+        end: visit.visitDate,
+        extendedProps: {
+          doctor: visit.doctor?.name || "Unassigned",
+          visitType: formatVisitType(visit.visitType),
+          status: visit.status
+        },
+        ...getVisitStatusStyles(visit.status)
+      })),
+    [visits]
+  );
+
+  const handleDayClick = (info) => {
+    if (!canCreateVisit) {
+      return;
+    }
+
+    onOpenModal("addVisit", {
+      initialDate: info.date
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-foreground">Visits</h2>
           <p className="text-sm text-muted-foreground">
-            Live records from <code>/api/visits</code>.
+            Manage appointments in calendar day, week, and month views.
           </p>
         </div>
-        {user?.role !== "doctor" ? (
+        {canCreateVisit ? (
           <button
             onClick={() => onOpenModal("addVisit")}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground transition-opacity hover:opacity-90"
@@ -135,6 +190,57 @@ function VisitsPage({
         </div>
       ) : null}
 
+      <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
+        <div className="mb-4 flex items-start gap-2 text-sm text-muted-foreground">
+          <Calendar className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            {canCreateVisit
+              ? "Click any day in the calendar to open a new visit form for that date."
+              : "Doctors can browse the visit calendar in day, week, and month views."}
+          </p>
+        </div>
+
+        <div className="visit-calendar overflow-hidden rounded-lg border border-border">
+          {isLoading ? (
+            <div className="px-6 py-16 text-center text-sm text-muted-foreground">
+              Loading visits...
+            </div>
+          ) : (
+            <FullCalendar
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              initialView="dayGridMonth"
+              headerToolbar={{
+                left: "prev,next today",
+                center: "title",
+                right: "dayGridMonth,timeGridWeek,timeGridDay"
+              }}
+              height="auto"
+              editable={false}
+              selectable={canCreateVisit}
+              dayMaxEvents={3}
+              events={calendarEvents}
+              dateClick={handleDayClick}
+              eventTimeFormat={{
+                hour: "numeric",
+                minute: "2-digit",
+                meridiem: "short"
+              }}
+              eventContent={(eventInfo) => (
+                <div className="px-1 py-0.5">
+                  <div className="truncate text-xs font-medium">
+                    {eventInfo.timeText ? `${eventInfo.timeText} ` : ""}
+                    {eventInfo.event.title}
+                  </div>
+                  <div className="truncate text-[11px] opacity-80">
+                    {eventInfo.event.extendedProps.visitType}
+                  </div>
+                </div>
+              )}
+            />
+          )}
+        </div>
+      </div>
+
       <div className="overflow-x-auto rounded-lg border border-border bg-white">
         <table className="w-full">
           <thead className="border-b border-border bg-accent">
@@ -192,7 +298,7 @@ function VisitsPage({
                       {visit.patient?.phone || "No phone"}
                     </p>
                   </td>
-                  <td className="px-4 py-4 md:px-6 text-sm text-muted-foreground">
+                  <td className="px-4 py-4 text-sm text-muted-foreground md:px-6">
                     {visit.doctor?.name || "Unassigned"}
                   </td>
                   <td className="px-4 py-4 md:px-6">
@@ -226,15 +332,6 @@ function VisitsPage({
             )}
           </tbody>
         </table>
-      </div>
-
-      <div className="rounded-lg border border-border bg-white p-4 text-sm text-muted-foreground">
-        <div className="flex items-start gap-2">
-          <Calendar className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>
-            Doctors can view visits. Admins and receptionists can create them.
-          </p>
-        </div>
       </div>
     </div>
   );
