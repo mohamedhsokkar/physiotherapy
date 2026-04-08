@@ -73,7 +73,7 @@ function AdminPage({
     icon: UserX
   }];
 
-  return <div className="space-y-6"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="text-foreground">Admin</h2><p className="text-sm text-muted-foreground">Review clinic staff accounts. Creating new users is intentionally not available in the web app.</p></div></div><div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">{summaryCards.map(card => {
+  return <div className="space-y-6"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="text-foreground">Admin</h2><p className="text-sm text-muted-foreground">Review clinic staff accounts.</p></div></div><div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">{summaryCards.map(card => {
         const Icon = card.icon;
         return <div key={card.label} className="rounded-lg border border-border bg-white p-5"><div className="flex items-center justify-between gap-3"><p className="text-sm text-muted-foreground">{card.label}</p><Icon className="h-5 w-5 text-primary" /></div><p className="mt-3 text-3xl text-foreground">{isLoading ? "..." : card.value}</p></div>;
       })}</div><div className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-white p-4 md:grid-cols-2"><div><label className="mb-2 block text-sm text-foreground">Role</label><select value={filters.role} onChange={event => setFilters(current => ({
