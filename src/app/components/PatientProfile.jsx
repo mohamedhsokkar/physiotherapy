@@ -22,6 +22,7 @@ function PatientProfile({
   patient,
   onBack,
   onOpenModal,
+  onOpenVisit,
   refreshKey
 }) {
   const { t, isRTL } = useLanguage();
@@ -100,10 +101,10 @@ function PatientProfile({
         </div>
       ) : (
         <div className="space-y-3">
-          {visits.map((visit) => (
-            <div
-              key={visit._id}
-              className="rounded-lg border border-border bg-white px-4 py-3"
+           {visits.map((visit) => (
+             <div
+               key={visit._id}
+               className="rounded-lg border border-border bg-white px-4 py-3"
             >
               <div
                 className={`flex items-start justify-between gap-3 ${
@@ -123,14 +124,24 @@ function PatientProfile({
                 </span>
               </div>
 
-              <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-muted-foreground md:grid-cols-2">
-                <p>Payment: {visit.paymentStatus}</p>
-                <p>Total: {formatCurrency(visit.totalAmount)}</p>
-                <p>Paid: {formatCurrency(visit.amountPaid)}</p>
-                <p>Complaint: {visit.chiefComplaint || "Not recorded"}</p>
-              </div>
-            </div>
-          ))}
+               <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-muted-foreground md:grid-cols-2">
+                 <p>Payment: {visit.paymentStatus}</p>
+                 <p>Total: {formatCurrency(visit.totalAmount)}</p>
+                 <p>Paid: {formatCurrency(visit.amountPaid)}</p>
+                 <p>Complaint: {visit.chiefComplaint || "Not recorded"}</p>
+               </div>
+               {onOpenVisit ? (
+                 <div className="mt-3 flex justify-end">
+                   <button
+                     onClick={() => onOpenVisit(visit)}
+                     className="rounded-lg px-3 py-1 text-sm text-primary transition-colors hover:bg-accent"
+                   >
+                     Open visit route
+                   </button>
+                 </div>
+               ) : null}
+             </div>
+           ))}
         </div>
       )}
     </div>

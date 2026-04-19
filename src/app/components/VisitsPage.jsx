@@ -3,7 +3,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import { Calendar, Plus } from "lucide-react";
+import { Calendar, Eye, Plus } from "lucide-react";
 import { api } from "../lib/api";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -43,12 +43,7 @@ function getVisitStatusStyles(status) {
   }
 }
 
-function VisitsPage({
-  token,
-  user,
-  onOpenModal,
-  refreshKey
-}) {
+function VisitsPage({ token, user, onOpenModal, onOpenVisit, refreshKey }) {
   const [visits, setVisits] = useState([]);
   const [filters, setFilters] = useState({
     status: "",
@@ -77,9 +72,7 @@ function VisitsPage({
         }
       } catch (loadError) {
         if (!isCancelled) {
-          setError(
-            loadError instanceof Error ? loadError.message : "Failed to load visits"
-          );
+          setError(loadError instanceof Error ? loadError.message : "Failed to load visits");
         }
       } finally {
         if (!isCancelled) {
@@ -163,9 +156,7 @@ function VisitsPage({
         </div>
 
         <div>
-          <label className="mb-2 block text-sm text-foreground">
-            Payment status
-          </label>
+          <label className="mb-2 block text-sm text-foreground">Payment status</label>
           <select
             value={filters.paymentStatus}
             onChange={(event) =>
@@ -195,7 +186,7 @@ function VisitsPage({
           <Calendar className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
             {canCreateVisit
-              ? "Click any day in the calendar to open a new visit form for that date."
+              ? "Click any day to add a visit, or click an existing event to open its route."
               : "Doctors can browse the visit calendar in day, week, and month views."}
           </p>
         </div>
@@ -208,18 +199,19 @@ function VisitsPage({
           ) : (
             <FullCalendar
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              initialView="dayGridMonth"
+              initialView="timeGridDay"
               headerToolbar={{
                 left: "prev,next today",
                 center: "title",
-                right: "dayGridMonth,timeGridWeek,timeGridDay"
+                right: "today timeGridDay,timeGridWeek,dayGridMonth"
               }}
               height="auto"
-              editable={false}
+              editable={canCreateVisit}
               selectable={canCreateVisit}
               dayMaxEvents={3}
               events={calendarEvents}
               dateClick={handleDayClick}
+              eventClick={(info) => onOpenVisit({ _id: info.event.id })}
               eventTimeFormat={{
                 hour: "numeric",
                 minute: "2-digit",
@@ -236,6 +228,19 @@ function VisitsPage({
                   </div>
                 </div>
               )}
+
+              // 15-minute grid
+              slotDuration="00:15:00"
+              snapDuration="00:15:00"
+
+              // default event duration = 15 minutes
+              defaultTimedEventDuration="00:15:00"
+              forceEventDuration={true}
+
+              // show only from 1 PM to 2 AM
+              slotMinTime="13:00:00"
+              slotMaxTime="26:00:00"
+
             />
           )}
         </div>
@@ -245,42 +250,25 @@ function VisitsPage({
         <table className="w-full">
           <thead className="border-b border-border bg-accent">
             <tr>
-              <th className="px-4 py-4 text-left text-foreground md:px-6">
-                Patient
-              </th>
-              <th className="px-4 py-4 text-left text-foreground md:px-6">
-                Doctor
-              </th>
-              <th className="px-4 py-4 text-left text-foreground md:px-6">
-                Visit
-              </th>
-              <th className="px-4 py-4 text-left text-foreground md:px-6">
-                Status
-              </th>
-              <th className="px-4 py-4 text-left text-foreground md:px-6">
-                Payment
-              </th>
-              <th className="px-4 py-4 text-right text-foreground md:px-6">
-                Amount
-              </th>
+              <th className="px-4 py-4 text-left text-foreground md:px-6">Patient</th>
+              <th className="px-4 py-4 text-left text-foreground md:px-6">Doctor</th>
+              <th className="px-4 py-4 text-left text-foreground md:px-6">Visit</th>
+              <th className="px-4 py-4 text-left text-foreground md:px-6">Status</th>
+              <th className="px-4 py-4 text-left text-foreground md:px-6">Payment</th>
+              <th className="px-4 py-4 text-right text-foreground md:px-6">Amount</th>
+              <th className="px-4 py-4 text-right text-foreground md:px-6">Route</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td
-                  colSpan={6}
-                  className="px-6 py-10 text-center text-sm text-muted-foreground"
-                >
+                <td colSpan={7} className="px-6 py-10 text-center text-sm text-muted-foreground">
                   Loading visits...
                 </td>
               </tr>
             ) : visits.length === 0 ? (
               <tr>
-                <td
-                  colSpan={6}
-                  className="px-6 py-10 text-center text-sm text-muted-foreground"
-                >
+                <td colSpan={7} className="px-6 py-10 text-center text-sm text-muted-foreground">
                   No visits found.
                 </td>
               </tr>
@@ -320,12 +308,19 @@ function VisitsPage({
                     </span>
                   </td>
                   <td className="px-4 py-4 text-right md:px-6">
-                    <p className="text-sm text-foreground">
-                      {formatCurrency(visit.totalAmount)}
-                    </p>
+                    <p className="text-sm text-foreground">{formatCurrency(visit.totalAmount)}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Paid {formatCurrency(visit.amountPaid)}
                     </p>
+                  </td>
+                  <td className="px-4 py-4 text-right md:px-6">
+                    <button
+                      onClick={() => onOpenVisit(visit)}
+                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1 text-sm text-primary transition-colors hover:bg-accent"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span>Open</span>
+                    </button>
                   </td>
                 </tr>
               ))

@@ -138,6 +138,12 @@ const api = {
     });
   },
 
+  getVisitById(token, visitId) {
+    return request(`/visits/${visitId}`, {
+      token
+    });
+  },
+
   createVisit(token, input) {
     return request("/visits", {
       method: "POST",

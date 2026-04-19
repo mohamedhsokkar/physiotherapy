@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronsUpDown, Search, X } from "lucide-react";
 import { api } from "../lib/api";
 
 function AddVisitModal({
@@ -27,6 +27,8 @@ function AddVisitModal({
 
   const [patients, setPatients] = useState(patient ? [patient] : []);
   const [doctors, setDoctors] = useState([]);
+  const [patientSearch, setPatientSearch] = useState(patient?.fullName || "");
+  const [isPatientListOpen, setIsPatientListOpen] = useState(false);
   const [form, setForm] = useState({
     patient: patient?._id || "",
     doctor: "",
@@ -42,6 +44,7 @@ function AddVisitModal({
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const patientPickerRef = useRef(null);
 
   useEffect(() => {
     setForm((current) => ({
@@ -49,6 +52,8 @@ function AddVisitModal({
       patient: patient?._id || "",
       visitDate: getInitialVisitDate()
     }));
+    setPatientSearch(patient?.fullName || "");
+    setIsPatientListOpen(false);
   }, [initialDate, patient]);
 
   useEffect(() => {
@@ -96,6 +101,51 @@ function AddVisitModal({
     };
   }, [patient, token]);
 
+  useEffect(() => {
+    if (patient || !form.patient) {
+      return;
+    }
+
+    const selectedPatient = patients.find((entry) => entry._id === form.patient);
+
+    if (selectedPatient) {
+      setPatientSearch(selectedPatient.fullName || "");
+    }
+  }, [form.patient, patient, patients]);
+
+  useEffect(() => {
+    if (patient) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (!patientPickerRef.current?.contains(event.target)) {
+        setIsPatientListOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, [patient]);
+
+  const filteredPatients = useMemo(() => {
+    const query = patientSearch.trim().toLowerCase();
+
+    if (!query) {
+      return patients;
+    }
+
+    return patients.filter((entry) => {
+      const name = entry.fullName?.toLowerCase() || "";
+      const phone = entry.phone?.toLowerCase() || "";
+
+      return name.includes(query) || phone.includes(query);
+    });
+  }, [patientSearch, patients]);
+
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((current) => ({
@@ -104,9 +154,35 @@ function AddVisitModal({
     }));
   };
 
+  const handlePatientSearchChange = (event) => {
+    const value = event.target.value;
+
+    setPatientSearch(value);
+    setIsPatientListOpen(true);
+    setForm((current) => ({
+      ...current,
+      patient: ""
+    }));
+  };
+
+  const handlePatientSelect = (selectedPatient) => {
+    setForm((current) => ({
+      ...current,
+      patient: selectedPatient._id
+    }));
+    setPatientSearch(selectedPatient.fullName || "");
+    setIsPatientListOpen(false);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
+
+    if (!patient && !form.patient) {
+      setError("Select a patient from the search results before saving.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -155,23 +231,61 @@ function AddVisitModal({
           ) : null}
 
           {!patient ? (
-            <div>
+            <div ref={patientPickerRef} className="relative">
               <label className="mb-2 block text-foreground">Patient</label>
-              <select
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={patientSearch}
+                  onChange={handlePatientSearchChange}
+                  onFocus={() => setIsPatientListOpen(true)}
+                  placeholder="Search by patient name or phone"
+                  className="w-full rounded-lg border border-border bg-input-background py-2 pl-10 pr-10 focus:outline-none focus:ring-2 focus:ring-ring"
+                  required
+                  disabled={isLoadingOptions}
+                />
+                <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              </div>
+
+              {isPatientListOpen ? (
+                <div className="absolute z-10 mt-2 max-h-64 w-full overflow-y-auto rounded-lg border border-border bg-white shadow-lg">
+                  {isLoadingOptions ? (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">
+                      Loading patients...
+                    </div>
+                  ) : filteredPatients.length > 0 ? (
+                    filteredPatients.map((entry) => (
+                      <button
+                        key={entry._id}
+                        type="button"
+                        onClick={() => handlePatientSelect(entry)}
+                        className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-accent"
+                      >
+                        <div>
+                          <p className="text-sm text-foreground">{entry.fullName}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {entry.phone || "No phone"}
+                          </p>
+                        </div>
+                        {form.patient === entry._id ? (
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        ) : null}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">
+                      No patients match that search.
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              <input
+                type="hidden"
                 name="patient"
                 value={form.patient}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-border bg-input-background px-4 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
-                required
-                disabled={isLoadingOptions}
-              >
-                <option value="">Select patient</option>
-                {patients.map((entry) => (
-                  <option key={entry._id} value={entry._id}>
-                    {entry.fullName}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           ) : (
             <div className="rounded-lg bg-accent p-4">

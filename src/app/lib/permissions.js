@@ -10,6 +10,15 @@ const DEFAULT_PAGE_BY_ROLE = {
   admin: "dashboard"
 };
 
+const PAGE_PATHS = {
+  dashboard: "/dashboard",
+  patients: "/patients",
+  visits: "/visits",
+  finance: "/finance",
+  reports: "/reports",
+  admin: "/admin"
+};
+
 function getAllowedPages(role) {
   return PAGE_ACCESS[role] || [];
 }
@@ -22,4 +31,12 @@ function getDefaultPage(role) {
   return DEFAULT_PAGE_BY_ROLE[role] || "patients";
 }
 
-export { canAccessPage, getAllowedPages, getDefaultPage };
+function getPagePath(page) {
+  return PAGE_PATHS[page] || PAGE_PATHS.patients;
+}
+
+function getDefaultPath(role) {
+  return getPagePath(getDefaultPage(role));
+}
+
+export { canAccessPage, getAllowedPages, getDefaultPage, getDefaultPath, getPagePath };
